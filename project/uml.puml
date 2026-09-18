@@ -1,0 +1,91 @@
+@startuml
+skinparam classAttributeIconSize 0
+package "cakecalculator" {
+
+    interface PropertyChangeListener {
+        + propertyChange(evt : PropertyChangeEvent) : void
+    }
+
+    class CigaretteModel {
+        - pcs : PropertyChangeSupport
+        - cigarettesPerDay : int
+        - packPrice : double
+        - tarMg : double
+        - nicotineMg : double
+        - yearsSmoking : double
+        - cakePrice : double
+        - orangePrice : double
+        - totalTarGrams : double
+        - totalNicotineGrams : double
+        - totalMoneySpent : double
+        - cakesCount : double
+        - orangesCount : double
+        + addPropertyChangeListener(listener : PropertyChangeListener) : void
+        + removePropertyChangeListener(listener : PropertyChangeListener) : void
+        + setData(cigarettesPerDay : int, packPrice : double, tarMg : double, nicotineMg : double, yearsSmoking : double, cakePrice : double, orangePrice : double) : void
+        - calculate() : void
+        + getCigarettesPerDay() : int
+        + getPackPrice() : double
+        + getTarMg() : double
+        + getNicotineMg() : double
+        + getYearsSmoking() : double
+        + getCakePrice() : double
+        + getOrangePrice() : double
+        + getTotalTarGrams() : double
+        + getTotalNicotineGrams() : double
+        + getTotalMoneySpent() : double
+        + getCakesCount() : double
+        + getOrangesCount() : double
+    }
+
+    class MainView {
+        - controller : Controller
+        - resultArea : JTextArea
+        + setController(controller : Controller) : void
+        + propertyChange(evt : PropertyChangeEvent) : void
+    }
+
+    class Controller {
+        - model : CigaretteModel
+        + openInputDialog(view : MainView) : void
+    }
+
+    class InputDialog {
+        - txtCigarettes : JTextField
+        - txtPackPrice : JTextField
+        - txtTar : JTextField
+        - txtNicotine : JTextField
+        - txtYears : JTextField
+        - txtCakePrice : JTextField
+        - txtOrangePrice : JTextField
+        - confirmed : boolean
+        - onSave() : void
+        + isConfirmed() : boolean
+        + getCigarettes() : int
+        + getPackPrice() : double
+        + getTar() : double
+        + getNicotine() : double
+        + getYears() : double
+        + getCakePrice() : double
+        + getOrangePrice() : double
+    }
+
+    class Main {
+        + {static} main(args : String[]) : void
+    }
+
+    ' Реализация интерфейса для Observer pattern (Активная модель)
+    PropertyChangeListener <|.. MainView
+    CigaretteModel o-- PropertyChangeListener : notifies >
+
+    ' Связи MVC
+    Controller --> CigaretteModel : updates >
+    MainView --> Controller : calls action >
+    Controller ..> InputDialog : creates / opens >
+
+    ' Зависимости Main (создание и связывание)
+    Main ..> CigaretteModel : creates
+    Main ..> MainView : creates
+    Main ..> Controller : creates
+}
+@enduml
