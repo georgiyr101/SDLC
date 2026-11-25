@@ -1,0 +1,42 @@
+@startuml
+skinparam monochrome true
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam BackgroundColor white
+left to right direction
+
+actor "Неаутентифицированный пользователь" as Guest
+actor Пользователь as User
+actor Таймер as Timer
+actor "Служба Push ОС" as PushOS
+
+rectangle "Трекер финансов" {
+  usecase "UC-11 Зарегистрироваться в системе" as UC11
+  usecase "UC-01 Пройти аутентификацию (вход)" as UC01
+  usecase "UC-02 Добавить операцию (доход/расход)" as UC02
+  usecase "UC-03 Установить лимит месяца (%)" as UC03
+  usecase "UC-04 Контроль порогов 80%/100% и Push" as UC04
+  usecase "UC-05 Выполнить регулярные платежи" as UC05
+  usecase "UC-06 Перевести между счетами" as UC06
+  usecase "UC-07 Просмотреть аналитику и CSV" as UC07
+  usecase "UC-09 Пересчитать баланс и лимит %" as UC09
+  usecase "UC-10 Автокатегоризировать операцию" as UC10
+}
+
+Guest --> UC11
+Guest --> UC01
+User --> UC02
+User --> UC03
+User --> UC06
+User --> UC07
+Timer --> UC05
+UC04 --> PushOS
+
+UC02 ..> UC09 : <<include>>
+UC03 ..> UC09 : <<include>>
+UC05 ..> UC09 : <<include>>
+
+UC10 ..> UC02 : <<extend>>
+UC04 ..> UC09 : <<extend>>
+UC03 ..> UC02 : <<extend>>
+@enduml
