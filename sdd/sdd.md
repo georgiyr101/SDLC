@@ -1,12 +1,16 @@
 # Описание дизайна программного обеспечения (SDD)
 
-Для системы «Трекер финансов» 
+Для системы «Трекер финансов» (Desktop, Android и iOS)
 
-Версия 1.0 
+Версия 1.1 
 
 Подготовил(а): Архитектор системы Романчук Георгий Александрович
 
-Дата: 27.10.2026
+Организация: Кафедра ЭВМ, БГУИР
+
+Дата: 25.11.2026
+
+Стандарт: IEEE 1016-2009 / ISO/IEC/IEEE 42010:2011 / OMG UML 2.5
 
 ---
 
@@ -36,6 +40,7 @@
   * [3.12 VIEW-PAT: Архитектурные паттерны](#312-view-pat)
   * [3.13 VIEW-DPL: Развертывание в Docker/Cloud](#313-view-dpl)
   * [3.14 VIEW-RES: Управление ресурсами](#314-view-res)
+  * [3.15 VIEW-BHV: Динамическое поведение и модели UML 2.5](#315-view-bhv)
 * [4. Архитектурные решения (ADR Summary)](#4-decisions)
 * [5. Приложения](#5-appendixes)
 
@@ -44,7 +49,7 @@
 ## 1. Введение {#1-introduction}
 
 ### 1.1 Назначение документа {#11-document-purpose}
-Настоящий документ Software Design Description (SDD) представляет архитектурное и детальное проектное описание программного продукта «Трекер финансов». Документ разработан в соответствии со стандартом IEEE 1016-2009 и определяет **КАК** реализуются требования, зафиксированные в согласованном документе SRS v0.5.
+Настоящий документ Software Design Description (SDD) представляет архитектурное и детальное проектное описание программного продукта «Трекер финансов». Документ разработан в соответствии со стандартом IEEE 1016-2009 и определяет **КАК** реализуются требования, зафиксированные в спецификации требований SRS (`srs/srs.md`), модели вариантов использования (`docs/lab5/use-cases.md`) и дополнительных спецификациях FURPS+ (`docs/lab5/supplementary-specifications.md`).
 Целевая аудитория: разработчики Backend (Java/Spring Boot), Desktop (JavaFX), Mobile (Android / Kotlin, iOS / Swift), инженеры по качеству (QA), системные администраторы и Заказчик проекта.
 
 ### 1.2 Область применения {#12-subject-scope}
@@ -72,11 +77,13 @@
 ### 1.4 Ссылки {#14-references}
 1. IEEE Std 1016-2009: IEEE Standard for Information Technology — Systems Design — Software Design Descriptions.
 2. ISO/IEC/IEEE 42010:2011: Systems and software engineering — Architecture description.
-3. SRS: «Трекер финансов», Спецификация требований к ПО v0.5 (`/srs/srs.md`).
-4. ADR: Протоколы архитектурных решений (`/docs/decisions/`).
+3. ISO/IEC 19505 (OMG UML 2.5): Unified Modeling Language Specification.
+4. SRS: «Трекер финансов», Спецификация требований к ПО (`/srs/srs.md`).
+5. ADR: Протоколы архитектурных решений (`/docs/decisions/`).
+6. Артефакты динамического моделирования (ЛР5): Глоссарий (`/docs/lab5/glossary.md`), Дополнительные спецификации (`/docs/lab5/supplementary-specifications.md`), Модель вариантов использования (`/docs/lab5/use-cases.md`), UML-схемы (`/docs/lab5/uml/`).
 
 ### 1.5 Обзор документа {#15-document-overview}
-Раздел 2 описывает ключевые задачи стейкхолдеров и перечень выбранных точек зрения. Раздел 3 содержит детальные проектные представления (Views) с диаграммами и спецификациями. Раздел 4 содержит сводку архитектурных решений MADR. Раздел 5 содержит матрицы трассируемости к требованиям SRS.
+Раздел 2 описывает ключевые задачи стейкхолдеров и перечень выбранных точек зрения. Раздел 3 содержит детальные проектные представления (Views 3.1–3.15) с диаграммами и спецификациями, включая поведенческие UML-модели из лабораторной работы №5. Раздел 4 содержит сводку архитектурных решений MADR. Раздел 5 содержит матрицы трассируемости к требованиям SRS и прецедентам `UC-01`–`UC-10`.
 
 ---
 
@@ -88,7 +95,8 @@
 |-------------|----------------------------|---------------------------------------------|
 | **Заказчик (Product Owner)** | Поддержка Android и iOS, соблюдение дедлайна, точность бюджетирования в % от дохода, сохранение бюджета разработки | VIEW-CTX, VIEW-COMP, VIEW-ALG, VIEW-INTF |
 | **Пользователи (Desktop & Mobile)** | Скорость работы (<2 сек), идентичность данных на телефоне и ПК, наглядный статус бюджета | VIEW-INTF, VIEW-SEQ, VIEW-STAT, VIEW-RES |
-| **Команда разработки** | Модульность, разделение ответственности, четкие контракты API, простота параллельной работы | VIEW-COMP, VIEW-LOG, VIEW-DEP, VIEW-PAT |
+| **Команда разработки (Senior + Junior)** | Модульность, разделение ответственности, четкие контракты API, простота параллельной работы | VIEW-COMP, VIEW-LOG, VIEW-DEP, VIEW-PAT |
+| **DevOps / Системный инженер** | Простота деплоя в Docker, изоляция PostgreSQL, мониторинг `/health`, резервное копирование | VIEW-PHY, VIEW-DPL, VIEW-CONC |
 
 ### 2.2 Выбранные точки зрения (15 Viewpoints) {#22-selected-viewpoints}
 Для всестороннего описания системы выбраны точки зрения стандарта ISO/IEC/IEEE 42010:
@@ -106,6 +114,7 @@
 12. **Patterns** — слоистая архитектура, DTO, Repository, Strategy.
 13. **Deployment** — контейнеризация Docker Compose.
 14. **Resources** — память JVM, пул соединений БД, квоты.
+15. **Behavioral / Use Case & Activity** — модель вариантов использования (`UC-01`–`UC-10`) и алгоритмы активности планировщика регулярных платежей.
 
 ---
 
@@ -174,27 +183,42 @@ graph LR
 - **Viewpoint:** Logical
 - **Адресуемые требования SRS:** REQ-MAINT-001-3, REQ-INT-006-3, CON-06
 - **Описание:** Бэкенд строго разделен на три слоя:
-  1. **Presentation / Web Layer:** REST Контроллеры (`AuthController`, `AccountController`, `TransactionController`, `BudgetController`, `ReportController`). Принимают DTO, валидируют входные параметры (`@Valid`), возвращают `ResponseEntity<ApiResponse<T>>`.
-  2. **Service / Domain Layer:** Сервисы с бизнес-логикой (`AccountService`, `TransactionService`, `BudgetLimitService`, `CategoryService`, `ReportService`). Выполняют расчеты в `BigDecimal`, управляют транзакциями (`@Transactional`).
-  3. **Data Access / Persistence Layer:** Интерфейсы `JpaRepository` (`AccountRepository`, `TransactionRepository`, `MonthlyBudgetRepository`).
+  1. **Presentation / Web Layer:** REST Контроллеры (`AuthController`, `AccountController`, `TransactionController`, `BudgetController`, `RecurringPaymentController`, `ReportController`). Принимают DTO, валидируют входные параметры (`@Valid`), возвращают `ResponseEntity<ApiResponse<T>>`.
+  2. **Service / Domain Layer:** Сервисы с бизнес-логикой (`AccountService`, `TransactionService`, `CategoryMatcher`, `BudgetLimitService`, `BudgetNotificationService`, `RecurringPaymentService`, `CategoryService`, `ReportService`). Выполняют расчеты в `BigDecimal`, управляют транзакциями (`@Transactional`).
+  3. **Data Access / Persistence Layer:** Интерфейсы `JpaRepository` (`AccountRepository`, `TransactionRepository`, `MonthlyBudgetRepository`, `RecurringPaymentRepository`, `CategoryRepository`).
 
 ```mermaid
 classDiagram
     class TransactionController {
         +createTransaction(CreateTransactionDto dto) ResponseEntity
+        +createTransfer(TransferDto dto) ResponseEntity
         +getTransactions(FilterParams params) PageResponse
         +deleteTransaction(Long id) ResponseEntity
     }
     
     class TransactionService {
         +saveTransaction(TransactionDto dto, Long userId) TransactionResult
+        +transferBetweenAccounts(TransferDto dto, Long userId) void
         +recalculateBalances(Long accountId) void
+    }
+
+    class CategoryMatcher {
+        +matchCategory(String description, Long userId, TransactionKind kind) Category
     }
     
     class BudgetLimitService {
         +registerIncomeAndSetBudget(IncomeDto dto, Long userId) BudgetCalculationResult
+        +disableMonthlyBudget(String yearMonth, Long userId) void
         +getMonthlyStatus(String yearMonth, Long userId) BudgetStatusDto
         -calculateThreshold(BigDecimal spent, BigDecimal limit) BudgetStatusEnum
+    }
+
+    class BudgetNotificationService {
+        +notifyIfThresholdCrossed(Long userId, BudgetStatusEnum prev, BudgetStatusEnum next) void
+    }
+
+    class RecurringPaymentService {
+        +executeScheduledPayments(LocalDate today) void
     }
     
     class TransactionRepository {
@@ -204,9 +228,12 @@ classDiagram
     }
     
     TransactionController --> TransactionService
-    TransactionController --> BudgetLimitService
+    TransactionService --> CategoryMatcher
+    TransactionService --> BudgetLimitService
     TransactionService --> TransactionRepository
+    BudgetLimitService --> BudgetNotificationService
     BudgetLimitService --> TransactionRepository
+    RecurringPaymentService --> TransactionService
 ```
 
 ---
@@ -333,12 +360,27 @@ CREATE TABLE monthly_budget (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
     year_month VARCHAR(7) NOT NULL, -- 'YYYY-MM'
-    limit_percent NUMERIC(5, 2) NOT NULL, -- например 70.00
+    limit_percent NUMERIC(5, 2) NOT NULL, -- диапазон 1.00 .. 100.00
+    last_notified_status VARCHAR(20) NOT NULL DEFAULT 'NORMAL', -- NORMAL, WARNING, EXCEEDED
     UNIQUE(user_id, year_month)
+);
+
+-- Таблица правил регулярных платежей (UC-07)
+CREATE TABLE recurring_payment (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
+    account_id BIGINT NOT NULL REFERENCES account(id),
+    category_id BIGINT REFERENCES category(id),
+    amount NUMERIC(19, 2) NOT NULL,
+    period_type VARCHAR(20) NOT NULL, -- WEEKLY, MONTHLY
+    day_of_month INT, -- 1..31 (для коротких месяцев переносится на последний день)
+    last_executed_date DATE, -- защита от дублирования (идемпотентность)
+    active BOOLEAN NOT NULL DEFAULT TRUE
 );
 
 CREATE INDEX idx_transaction_user_date ON transaction(user_id, date);
 CREATE INDEX idx_account_user ON account(user_id);
+CREATE INDEX idx_recurring_active ON recurring_payment(active, last_executed_date);
 ```
 
 ---
@@ -346,59 +388,65 @@ CREATE INDEX idx_account_user ON account(user_id);
 ### 3.7 VIEW-INTF: Спецификация контрактов REST API {#37-view-intf}
 - **ID:** VIEW-INTF-001
 - **Viewpoint:** Interface
-- **Адресуемые требования SRS:** REQ-INT-008-3, REQ-FUNC-012-3, REQ-FUNC-013-3
+- **Адресуемые требования SRS:** REQ-INT-008-3, REQ-FUNC-007, REQ-FUNC-008, REQ-FUNC-012..014, REQ-FUNC-025
 - **Описание:** Контракты сетевого интерфейса между всеми клиентами и сервером приложений.
 
 | Метод | Путь эндпоинта | Описание | Формат тела запроса / ответа |
 |-------|----------------|----------|------------------------------|
-| `POST` | `/api/v1/auth/register` | Регистрация нового аккаунта | `{ email, password, consent }` -> `{ token, userId }` |
-| `POST` | `/api/v1/auth/login` | Вход и получение JWT | `{ email, password }` -> `{ accessToken, refreshToken }` |
+| `POST` | `/api/v1/auth/register` | Регистрация нового аккаунта (`UC-01`) | `{ name, email, password, consent }` -> `{ accessToken, refreshToken, userId }` |
+| `POST` | `/api/v1/auth/login` | Вход и получение пары JWT (`UC-02`) | `{ email, password }` -> `{ accessToken, refreshToken }` |
+| `POST` | `/api/v1/auth/refresh` | Тихое обновление Access Token (`UC-02`) | `{ refreshToken }` -> `{ accessToken, refreshToken }` |
 | `GET` | `/api/v1/accounts` | Список активных счетов пользователя | `Bearer JWT` -> `[{ id, name, balance, currency, kind }]` |
-| `POST` | `/api/v1/transactions` | Создание операции (доход/расход) | `{ accountId, categoryId, amount, date, kind, budgetPercent }` |
+| `POST` | `/api/v1/transactions` | Создание операции дохода/расхода (`UC-03`, `UC-10`) | `{ accountId, categoryId?, amount, date, kind, description, budgetPercent? }` |
+| `POST` | `/api/v1/transactions/transfer` | Межсчётный перевод в одной валюте (`UC-05`) | `{ sourceAccountId, targetAccountId, amount, date, description }` |
+| `PUT` | `/api/v1/budgets/current` | Установка/обновление лимита 1%–100% (`UC-04`) | `{ limitPercent }` -> `BudgetStatusDto` |
+| `DELETE` | `/api/v1/budgets/current` | Отключение месячного лимита (`UC-04`) | `Bearer JWT` -> `204 No Content` |
 | `GET` | `/api/v1/budgets/current` | Получение статуса месячного лимита | `Bearer JWT` -> `{ month, totalIncome, limitPercent, absoluteLimit, totalExpenses, remainingLimit, status }` |
-| `GET` | `/api/v1/reports/categories` | Агрегированные данные для круговой диаграммы | `?from=YYYY-MM-DD&to=YYYY-MM-DD` -> `[{ category, amount, percent }]` |
+| `POST` | `/api/v1/recurring-payments` | Создание правила регулярного платежа (`UC-07`) | `{ accountId, categoryId, amount, periodType, dayOfMonth }` |
+| `GET` | `/api/v1/reports/categories` | Агрегированные данные для круговой диаграммы (`UC-06`) | `?from=YYYY-MM-DD&to=YYYY-MM-DD` -> `[{ category, amount, percent }]` |
 | `GET` | `/health` | Проверка состояния бэкенда и БД | Открытый -> `{ status: "UP", database: "CONNECTED" }` |
 
 ---
 
-### 3.8 VIEW-SEQ: Взаимодействие в рантайме (Внесение дохода с лимитом %) {#38-view-seq}
+### 3.8 VIEW-SEQ: Взаимодействие в рантайме (Регистрация операции, баланс и лимит) {#38-view-seq}
 - **ID:** VIEW-SEQ-001
 - **Viewpoint:** Interaction
-- **Адресуемые требования SRS:** REQ-FUNC-012-3, REQ-FUNC-013-3, REQ-FUNC-026-2
-- **Описание:** Сценарий внесения дохода со смартфона (iOS/Android), пересчет абсолютного лимита и синхронизация дашборда.
+- **Адресуемые требования SRS:** REQ-FUNC-002, REQ-FUNC-004, REQ-FUNC-011..014, REQ-REL-001, REQ-REL-003
+- **UML-артефакт ЛР5:** `/docs/lab5/uml/sequence-create-transaction.drawio`
+- **Описание:** Сценарий добавления операции дохода/расхода (`UC-03`), опциональной автокатегоризации (`UC-10`), сохранения в ACID-транзакции с пересчётом баланса и месячного лимита (`UC-09`) и отправки уведомления в Службу Push ОС при первом пересечении порога 80% или 100% (`UC-08`).
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor User as Пользователь
-    participant Client as Мобильный клиент (iOS/Android)
-    participant API as Spring Boot Controller
-    participant BService as BudgetLimitService
-    participant TService as TransactionService
-    participant DB as PostgreSQL Database
+    participant Ctrl as Контроллер операций
+    participant Svc as Сервис операций
+    participant Cat as Автокатегоризатор
+    participant Repo as Репозиторий данных
+    participant DB as База данных
+    participant Push as Служба Push ОС
 
-    User->>Client: Вводит доход 100 000 ₽ и лимит 70%
-    Client->>Client: Клиентская валидация (amount > 0, % в 0..100)
-    Client->>API: POST /api/v1/transactions (с JWT)
-    API->>API: Валидация токена и извлечение user_id
-    API->>TService: saveTransaction(...)
-    activate TService
-    TService->>DB: INSERT INTO transaction (...)
-    TService->>DB: UPDATE account SET current_balance = current_balance + 100000
-    deactivate TService
-    
-    API->>BService: updateMonthlyBudget(userId, '2026-10', 70.00)
-    activate BService
-    BService->>DB: UPSERT INTO monthly_budget VALUES (userId, '2026-10', 70.00)
-    BService->>DB: SELECT SUM(amount) FROM transaction WHERE kind='INCOME'
-    BService->>DB: SELECT SUM(amount) FROM transaction WHERE kind='EXPENSE'
-    BService->>BService: Вычисление лимита: 100000 * 70% = 70000 ₽
-    BService->>BService: Вычисление остатка: 70000 - 25000 = 45000 ₽ (Норма)
-    deactivate BService
-    
-    API-->>Client: 201 Created + BudgetStatusDto { limit: 70000, remaining: 45000, status: "NORMAL" }
-    Client->>Client: Отрисовка обновленного виджета (зеленый индикатор)
-    Client-->>User: Успешное сохранение и статус "Норма"
+    User->>Ctrl: отправить новую операцию (счёт, сумма, тип, описание)
+    Ctrl->>Ctrl: проверить доступ, владельца и заполнение формы
+    Ctrl->>Svc: создать операцию владельца
+    Svc->>Repo: найти активный счёт владельца
+    Repo->>DB: запросить и заблокировать счёт
+    DB-->>Repo: данные активного счёта
+    Repo-->>Svc: счёт подтверждён и активен
+    Note over Svc: {денежные расчёты без потери копеек}
+    opt [категория не указана] (UC-10)
+        Svc->>Cat: подобрать категорию по ключевым словам
+        Cat-->>Svc: категория или «Прочее»
+    end
+    Svc->>Repo: сохранить операцию, баланс и лимит (UC-09)
+    Repo->>DB: записать операцию и остатки
+    DB-->>Repo: изменения сохранены
+    Repo-->>Svc: новый баланс и статус лимита
+    opt [порог 80% или 100% преодолён впервые] (UC-08)
+        Svc->>Push: отправить уведомление о лимите
+    end
+    Svc-->>Ctrl: транзакция завершена
+    Ctrl-->>User: операция сохранена; показан новый баланс
 ```
 
 ---
@@ -418,20 +466,20 @@ public BudgetStatusDto calculateBudgetStatus(Long userId, YearMonth month) {
         .orElse(null);
         
     if (budget == null || totalIncome.compareTo(BigDecimal.ZERO) <= 0) {
-        return BudgetStatusDto.undefined("Укажите доход и процент лимита");
+        return BudgetStatusDto.undefined("Лимит не задан");
     }
     
-    // Абсолютный лимит = Доход * (Процент / 100)
+    // Сумма лимита = Доходы месяца * (Процент лимита / 100), процент в диапазоне 1%..100%
     BigDecimal percentFactor = budget.getLimitPercent()
         .divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
     BigDecimal absoluteLimit = totalIncome.multiply(percentFactor)
         .setScale(2, RoundingMode.HALF_UP);
         
-    // Остаток лимита = Абсолютный лимит - Расходы
+    // Остаток лимита = Сумма лимита - Расходы
     BigDecimal remainingLimit = absoluteLimit.subtract(totalExpense)
         .setScale(2, RoundingMode.HALF_UP);
         
-    // Процент освоения лимита
+    // Доля освоения лимита (%)
     BigDecimal spentPercent = BigDecimal.ZERO;
     if (absoluteLimit.compareTo(BigDecimal.ZERO) > 0) {
         spentPercent = totalExpense.divide(absoluteLimit, 4, RoundingMode.HALF_UP)
@@ -439,14 +487,20 @@ public BudgetStatusDto calculateBudgetStatus(Long userId, YearMonth month) {
             .setScale(1, RoundingMode.HALF_UP);
     }
     
-    // Определение статуса светофора
+    // Определение статуса светофора (согласовано с ЛР5)
     BudgetStatusEnum status;
     if (spentPercent.compareTo(new BigDecimal("80.0")) < 0) {
-        status = BudgetStatusEnum.NORMAL;       // < 80%: Зеленый + Галочка
-    } else if (spentPercent.compareTo(new BigDecimal("100.0")) < 0) {
-        status = BudgetStatusEnum.WARNING;      // 80% - 99.9%: Желтый + Треугольник
+        status = BudgetStatusEnum.NORMAL;       // < 80%: Норма (зелёный)
+    } else if (spentPercent.compareTo(new BigDecimal("100.0")) <= 0) {
+        status = BudgetStatusEnum.WARNING;      // 80%–100%: Предупреждение (жёлтый)
     } else {
-        status = BudgetStatusEnum.EXCEEDED;     // >= 100%: Красный + Стоп
+        status = BudgetStatusEnum.EXCEEDED;     // > 100%: Лимит превышен (красный)
+    }
+    
+    // Повторное push-уведомление на том же уровне не отправляется
+    if (status.ordinal() > budget.getLastNotifiedStatus().ordinal()) {
+        notificationService.notifyThreshold(userId, status);
+        budget.setLastNotifiedStatus(status);
     }
     
     return new BudgetStatusDto(month, totalIncome, budget.getLimitPercent(),
@@ -456,29 +510,32 @@ public BudgetStatusDto calculateBudgetStatus(Long userId, YearMonth month) {
 
 ---
 
-### 3.10 VIEW-STAT: Динамика состояний бюджета {#310-view-stat}
+### 3.10 VIEW-STAT: Динамика состояний месячного лимита {#310-view-stat}
 - **ID:** VIEW-STAT-001
 - **Viewpoint:** State Dynamics
-- **Адресуемые требования SRS:** REQ-FUNC-013-3
-- **Описание:** Конечный автомат статуса месячного бюджета пользователя.
+- **Адресуемые требования SRS:** REQ-FUNC-012..014
+- **UML-артефакт ЛР5:** `/docs/lab5/uml/state-monthly-budget.drawio`
+- **Описание:** Конечный автомат жизненного цикла месячного лимита расходов за календарный месяц. Включает состояние «Лимит не задан», составное состояние «Лимит активен» (подсостояния «Норма», «Предупреждение», «Лимит превышен»), переходы при добавлении расходов/доходов, ручное отключение лимита и завершение месяца.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> UNDEFINED: Начало месяца (доход еще не внесен)
-    
-    UNDEFINED --> NORMAL: Внесен доход и процент лимита (расходы < 80%)
-    
-    NORMAL --> NORMAL: Добавлен расход (траты < 80% лимита)
-    NORMAL --> WARNING: Добавлен расход (траты достигли 80% - 99.9%)
-    NORMAL --> EXCEEDED: Добавлен крупный расход (траты >= 100%)
-    
-    WARNING --> NORMAL: Внесен дополнительный доход (лимит вырос, траты стали < 80%)
-    WARNING --> WARNING: Добавлен небольшой расход (< 100%)
-    WARNING --> EXCEEDED: Добавлен расход (траты превысили 100%)
-    
-    EXCEEDED --> WARNING: Внесен дополнительный доход (траты стали < 100%)
-    EXCEEDED --> NORMAL: Внесен крупный доход (траты стали < 80%)
-    EXCEEDED --> EXCEEDED: Добавлены новые расходы (отрицательный остаток увеличивается)
+    [*] --> ЛимитНеЗадан : начало месяца
+    ЛимитНеЗадан --> ЛимитАктивен : задать лимит (1%–100% от дохода) [в месяце уже есть доходы]
+    ЛимитАктивен --> ЛимитНеЗадан : отключить лимит
+    ЛимитНеЗадан --> [*] : завершение месяца
+    ЛимитАктивен --> [*] : завершение месяца
+
+    state ЛимитАктивен {
+        [*] --> Норма
+        Норма --> Предупреждение : добавлен расход [80%–100% лимита] / уведомить
+        Норма --> ЛимитПревышен : крупный расход [сразу превышен лимит] / уведомить
+        Предупреждение --> ЛимитПревышен : добавлен расход [превышен лимит] / уведомить
+        Предупреждение --> Предупреждение : добавлен расход [80%–100%] / без повторного уведомления
+        ЛимитПревышен --> ЛимитПревышен : добавлен расход [лимит уже превышен] / без повторного уведомления
+        Предупреждение --> Норма : добавлен доход или увеличен лимит [< 80% лимита]
+        ЛимитПревышен --> Предупреждение : добавлен доход или увеличен лимит [80%–100% лимита]
+        ЛимитПревышен --> Норма : добавлен доход или увеличен процент [< 80% лимита]
+    }
 ```
 
 ---
@@ -567,6 +624,17 @@ volumes:
 
 ---
 
+### 3.15 VIEW-BHV: Динамическое поведение и модели UML 2.5 {#315-view-bhv}
+- **ID:** VIEW-BHV-001
+- **Viewpoint:** Behavioral / Use Case & Activity
+- **Адресуемые требования SRS:** REQ-FUNC-001..026, REQ-REL-001, REQ-REL-003
+- **Описание:** По итогам лабораторной работы №5 проектирование дополнено полным комплектом поведенческих UML-моделей, трассируемых к компонентам архитектуры:
+  1. **Модель вариантов использования (`/docs/lab5/use-cases.md`, `/docs/lab5/uml/use-case.drawio`):** выделены 4 актора (*Неаутентифицированный пользователь*, *Пользователь*, *Таймер*, внешняя подсистема *Служба Push ОС*) и 10 прецедентов `UC-01`–`UC-10` со связями `<<include>>` (`UC-03, UC-04, UC-07 → UC-09`) и `<<extend>>` (`UC-10 → UC-03`, `UC-04 → UC-03`, `UC-08 → UC-09`).
+  2. **Диаграмма активности (`/docs/lab5/uml/activity-recurring-payment.drawio`):** формализует ежедневный ночной цикл `RecurringPaymentService` в 03:00 (`UC-07`, `UC-09`, `UC-08`) — выборку активных правил, перенос дат 29–31 для коротких месяцев, проверку идемпотентности по `last_executed_date`, изоляцию ошибок при архивном счёте, пересчёт баланса и лимита и первичную отправку Push-уведомлений.
+  3. **Дополнительные спецификации FURPS+ и глоссарий (`/docs/lab5/supplementary-specifications.md`, `/docs/lab5/glossary.md`):** закрепляют единую терминологию предметной области и нефункциональные инварианты для всех модулей системы.
+
+---
+
 ## 4. Архитектурные решения (ADR Summary) {#4-decisions}
 
 В проекте зафиксированы архитектурные решения по шаблону MADR:
@@ -583,16 +651,21 @@ volumes:
 
 ## 5. Приложения {#5-appendixes}
 
-### Матрица трассируемости «Требования SRS -> Проектные представления SDD»
+### Матрица трассируемости «Требования SRS -> Проектные представления SDD -> Модели UML (ЛР5)»
 
-| ID требования SRS | Наименование требования | Реализующее проектное представление SDD |
-|-------------------|-------------------------|------------------------------------------|
-| REQ-INT-001-3 | Навигация Desktop/Android/iOS | VIEW-CTX-001, VIEW-COMP-001 |
-| REQ-INT-006-3 | Безопасность PostgreSQL | VIEW-PHY-001, VIEW-INF-001 |
-| REQ-INT-008-3 | Единый REST API v1 | VIEW-INTF-001, VIEW-SEQ-001 |
-| REQ-FUNC-002 | Расчет балансов в BigDecimal | VIEW-LOG-001, VIEW-INF-001 |
-| REQ-FUNC-012-3 | Лимит в % от дохода | VIEW-ALG-001, VIEW-SEQ-001, VIEW-INF-001 |
-| REQ-FUNC-013-3 | Светофорная индикация лимита | VIEW-ALG-001, VIEW-STAT-001 |
-| REQ-FUNC-026-2 | Синхронизация между устройствами| VIEW-CTX-001, VIEW-CONC-001 |
-| REQ-DIST-002 | Трёхзвенная архитектура | VIEW-CTX-001, VIEW-PHY-001 |
-| REQ-PORT-001-3 | Поддержка Desktop, Android, iOS | VIEW-CTX-001, VIEW-COMP-001, VIEW-DEP-001 |
+| ID требования SRS | Наименование требования | Проектное представление SDD | Прецеденты / диаграммы ЛР5 |
+|-------------------|-------------------------|-----------------------------|----------------------------|
+| REQ-INT-001-3 | Навигация Desktop/Android/iOS | VIEW-CTX-001, VIEW-COMP-001 | `UC-01`–`UC-06` |
+| REQ-INT-006-3 | Безопасность PostgreSQL | VIEW-PHY-001, VIEW-INF-001 | Доп. спецификации FURPS+ |
+| REQ-INT-008-3 | Единый REST API v1 | VIEW-INTF-001, VIEW-SEQ-001 | Sequence (`UC-03, UC-09, UC-08`) |
+| REQ-FUNC-002 | Расчет балансов в BigDecimal | VIEW-LOG-001, VIEW-INF-001 | `UC-03`, `UC-05`, `UC-09` |
+| REQ-FUNC-007 | Межсчётные переводы | VIEW-LOG-001, VIEW-INTF-001 | `UC-05` |
+| REQ-FUNC-008 | Регулярные платежи по расписанию | VIEW-LOG-001, VIEW-INF-001, VIEW-BHV-001 | `UC-07`, Activity Diagram |
+| REQ-FUNC-011 | Автокатегоризация по ключевым словам | VIEW-LOG-001, VIEW-SEQ-001 | `UC-10`, Sequence Diagram |
+| REQ-FUNC-012-3 | Лимит в % от дохода | VIEW-ALG-001, VIEW-SEQ-001, VIEW-INF-001 | `UC-04`, `UC-09`, State Machine |
+| REQ-FUNC-013-3 | Светофорная индикация лимита | VIEW-ALG-001, VIEW-STAT-001 | State Machine (`state-monthly-budget`) |
+| REQ-FUNC-014 | Push-уведомления о порогах 80%/100% | VIEW-LOG-001, VIEW-ALG-001, VIEW-SEQ-001 | `UC-08`, Sequence & Activity |
+| REQ-FUNC-026-2 | Синхронизация между устройствами | VIEW-CTX-001, VIEW-CONC-001 | Глоссарий, FURPS+ |
+| REQ-SEC-002 | Быстрая разблокировка (PIN / биометрия) | VIEW-INTF-001 | `UC-02` (альтернативный поток А1) |
+| REQ-DIST-002 | Трёхзвенная архитектура | VIEW-CTX-001, VIEW-PHY-001 | Use Case (`use-case.drawio`) |
+| REQ-PORT-001-3 | Поддержка Desktop, Android, iOS | VIEW-CTX-001, VIEW-COMP-001, VIEW-DEP-001 | Доп. спецификации FURPS+ |
